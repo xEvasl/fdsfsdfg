@@ -223,7 +223,7 @@ do
     })
     
     local AboutSection = AboutTab:Section({
-        Title = "About WindUI",
+        Title = "Panic Key",
     })
     
     AboutSection:Image({
@@ -234,44 +234,8 @@ do
     
     AboutSection:Space({ Columns = 3 })
     
-    AboutSection:Section({
-        Title = "What is WindUI?",
-        TextSize = 24,
-        FontWeight = Enum.FontWeight.SemiBold,
-    })
 
-    AboutSection:Space()
     
-    AboutSection:Section({
-        Title = [[WindUI is a stylish, open-source UI (User Interface) library specifically designed for Roblox Script Hubs.
-Developed by Footagesus (.ftgs, Footages).
-It aims to provide developers with a modern, customizable, and easy-to-use toolkit for creating visually appealing interfaces within Roblox.
-The project is primarily written in Lua (Luau), the scripting language used in Roblox.]],
-        TextSize = 18,
-        TextTransparency = .35,
-        FontWeight = Enum.FontWeight.Medium,
-    })
-    
-    AboutTab:Space({ Columns = 4 }) 
-    
-    
-    -- Default buttons
-    
-    AboutTab:Button({
-        Title = "Export WindUI JSON (copy)",
-        Color = Color3.fromHex("#a2ff30"),
-        Justify = "Center",
-        IconAlign = "Left",
-        Icon = "", -- removing icon
-        Callback = function()
-            tableToClipboard(WindUI)
-            WindUI:Notify({
-                Title = "WindUI JSON",
-                Content = "Copied to Clipboard!"
-            })
-        end
-    })
-    AboutTab:Space({ Columns = 1 }) 
     
     
     AboutTab:Button({
@@ -329,6 +293,86 @@ do
     
     ToggleTab:Toggle({
         Title = "Toggle",
+        --// ====== SETTINGS ======
+local SHOP_NAMES = { "Plants Shop", "PlantsShop", "Shop" }  -- любые возможные имена модели магазина
+local TRIGGER_DELAY = 0.07                                   -- пауза между покупками
+
+--// ====== SERVICES ======
+local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local LocalPlayer = Players.LocalPlayer
+
+--// ====== HELPERS ======
+local function findShopModel()
+    for _, name in ipairs(SHOP_NAMES) do
+        local m = workspace:FindFirstChild(name)
+        if m then return m end
+    end
+    -- если названия другие, подставь свой путь вручную:
+    -- return workspace.Map.NPCs["Plants Shop"]
+    return nil
+end
+
+local function collectPrompts(root)
+    local prompts = {}
+    if not root then return prompts end
+    for _, inst in ipairs(root:GetDescendants()) do
+        if inst:IsA("ProximityPrompt") then
+            -- Скрываем стандартный UI у локального игрока
+            inst.Style = Enum.ProximityPromptStyle.Custom
+            inst.HoldDuration = 0
+            inst.RequiresLineOfSight = false
+            table.insert(prompts, inst)
+        end
+    end
+    return prompts
+end
+
+local autoBuyConn
+local function startAutoBuy()
+    local shop = findShopModel()
+    if not shop then
+        warn("[AutoBuy] Не найден магазин. Проверь SHOP_NAMES/путь к модели.")
+        return
+    end
+
+    local prompts = collectPrompts(shop)
+    if #prompts == 0 then
+        warn("[AutoBuy] В магазине нет ProximityPrompt.")
+        return
+    end
+
+    -- Одноразовый проход «скупить всё»
+    task.spawn(function()
+        for _, prompt in ipairs(prompts) do
+            -- Принудительно активируем промпт без открытия UI
+            -- На клиенте достаточно вызвать TriggerPrompt:
+            ProximityPromptService:TriggerPrompt(prompt)
+            task.wait(TRIGGER_DELAY)
+        end
+    end)
+end
+
+local function stopAutoBuy()
+    if autoBuyConn then
+        autoBuyConn:Disconnect()
+        autoBuyConn = nil
+    end
+end
+
+--// ====== UI TOGGLE ======
+ToggleTab:Toggle({
+    Title = "Auto-buy Plants",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            startAutoBuy()
+        else
+            stopAutoBuy()
+        end
+    end
+})
+
     })
     
     ToggleTab:Space()
